@@ -3,6 +3,7 @@ import { Leaf, Menu } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { ChatAssistant } from "@/components/ChatAssistant";
 
 const links = [
   { to: "/", label: "Home" },
@@ -41,6 +42,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <ChatAssistant />
           {user ? (
             <>
               <span className="text-sm text-muted-foreground">
