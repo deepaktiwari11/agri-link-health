@@ -41,6 +41,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <ChatAssistant />
           {user ? (
             <>
               <span className="text-sm text-muted-foreground">
