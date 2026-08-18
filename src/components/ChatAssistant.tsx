@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Bot, Send, X, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -98,7 +99,7 @@ export function ChatAssistant() {
         <span className="hidden lg:inline">Ask AI</span>
       </Button>
 
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <div className="fixed bottom-4 right-4 z-50 flex h-[30rem] w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
           <div className="flex items-center justify-between gap-2 border-b border-border bg-hero-gradient px-4 py-3 text-primary-foreground">
             <div className="flex items-center gap-2">
@@ -168,7 +169,8 @@ export function ChatAssistant() {
               <Send className="size-4" />
             </Button>
           </form>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
