@@ -340,12 +340,9 @@ function DashboardPage() {
                   {cropName} — ₹{Number(price || 0).toLocaleString("en-IN")} / {unit}
                 </p>
               )}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                <div>
-                  <Label htmlFor="quantity">Quantity available</Label>
-                  <Input id="quantity" name="quantity" type="number" step="0.1" min="0" required className="mt-1.5" />
-                </div>
+              <div>
+                <Label htmlFor="quantity">Quantity available</Label>
+                <Input id="quantity" name="quantity" type="number" step="0.1" min="0" required className="mt-1.5" />
               </div>
               <div>
                 <Label htmlFor="location">Village / Market</Label>
