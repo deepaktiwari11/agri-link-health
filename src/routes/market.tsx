@@ -184,15 +184,15 @@ function MarketPage() {
         <div className="flex flex-wrap gap-2">
           {categories.map((c) => (
             <button
-              key={c}
-              onClick={() => setCategory(c)}
-              className={`rounded-full border px-3 py-1.5 text-xs capitalize transition-colors ${
-                category === c
+              key={c.value}
+              onClick={() => setCategory(c.value)}
+              className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                category === c.value
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border text-muted-foreground hover:bg-secondary"
               }`}
             >
-              {c}
+              {c.label}
             </button>
           ))}
         </div>
