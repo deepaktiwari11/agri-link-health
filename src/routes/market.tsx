@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { CROP_CATALOG } from "@/lib/crop-catalog";
 
 export const Route = createFileRoute("/market")({
   head: () => ({
@@ -83,6 +84,9 @@ function MarketPage() {
   const { user, profile } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
+  const [sort, setSort] = useState("recent");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [active, setActive] = useState<ProductRow | null>(null);
   const [sending, setSending] = useState(false);
 
@@ -119,15 +123,27 @@ function MarketPage() {
     },
   });
 
-  const filtered = (productsQuery.data ?? []).filter((p) => {
-    const term = search.trim().toLowerCase();
-    const matchesTerm =
-      !term ||
-      p.name.toLowerCase().includes(term) ||
-      (p.location ?? "").toLowerCase().includes(term) ||
-      (p.description ?? "").toLowerCase().includes(term);
-    return matchesTerm && (category === "all" || p.category === category);
-  });
+  const filtered = (productsQuery.data ?? [])
+    .filter((p) => {
+      const term = search.trim().toLowerCase();
+      const matchesTerm =
+        !term ||
+        p.name.toLowerCase().includes(term) ||
+        (p.location ?? "").toLowerCase().includes(term) ||
+        (p.description ?? "").toLowerCase().includes(term);
+      const min = minPrice === "" ? null : Number(minPrice);
+      const max = maxPrice === "" ? null : Number(maxPrice);
+      const price = Number(p.price);
+      const matchesPrice =
+        (min === null || Number.isNaN(min) || price >= min) &&
+        (max === null || Number.isNaN(max) || price <= max);
+      return matchesTerm && matchesPrice && (category === "all" || p.category === category);
+    })
+    .sort((a, b) => {
+      if (sort === "price_low") return Number(a.price) - Number(b.price);
+      if (sort === "price_high") return Number(b.price) - Number(a.price);
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   const submitInquiry = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -183,19 +199,84 @@ function MarketPage() {
         <div className="flex flex-wrap gap-2">
           {categories.map((c) => (
             <button
-              key={c}
-              onClick={() => setCategory(c)}
-              className={`rounded-full border px-3 py-1.5 text-xs capitalize transition-colors ${
-                category === c
+              key={c.value}
+              onClick={() => setCategory(c.value)}
+              className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                category === c.value
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border text-muted-foreground hover:bg-secondary"
               }`}
             >
-              {c}
+              {c.label}
             </button>
           ))}
         </div>
       </div>
+
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <div>
+          <Label htmlFor="min_price" className="text-xs text-muted-foreground">
+            Min price (₹)
+          </Label>
+          <Input
+            id="min_price"
+            type="number"
+            min="0"
+            inputMode="numeric"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            placeholder="0"
+            className="mt-1 w-28"
+          />
+        </div>
+        <div>
+          <Label htmlFor="max_price" className="text-xs text-muted-foreground">
+            Max price (₹)
+          </Label>
+          <Input
+            id="max_price"
+            type="number"
+            min="0"
+            inputMode="numeric"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            placeholder="Any"
+            className="mt-1 w-28"
+          />
+        </div>
+        <div>
+          <Label htmlFor="sort" className="text-xs text-muted-foreground">
+            Sort by
+          </Label>
+          <select
+            id="sort"
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="mt-1 h-9 rounded-md border border-input bg-background px-3 text-sm"
+          >
+            {sortOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {(minPrice || maxPrice || sort !== "recent" || category !== "all") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setMinPrice("");
+              setMaxPrice("");
+              setSort("recent");
+              setCategory("all");
+            }}
+          >
+            Reset filters
+          </Button>
+        )}
+      </div>
+
 
       {productsQuery.isLoading && <p className="mt-10 text-sm text-muted-foreground">Loading listings…</p>}
 
