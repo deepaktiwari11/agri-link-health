@@ -213,6 +213,71 @@ function MarketPage() {
         </div>
       </div>
 
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <div>
+          <Label htmlFor="min_price" className="text-xs text-muted-foreground">
+            Min price (₹)
+          </Label>
+          <Input
+            id="min_price"
+            type="number"
+            min="0"
+            inputMode="numeric"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            placeholder="0"
+            className="mt-1 w-28"
+          />
+        </div>
+        <div>
+          <Label htmlFor="max_price" className="text-xs text-muted-foreground">
+            Max price (₹)
+          </Label>
+          <Input
+            id="max_price"
+            type="number"
+            min="0"
+            inputMode="numeric"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            placeholder="Any"
+            className="mt-1 w-28"
+          />
+        </div>
+        <div>
+          <Label htmlFor="sort" className="text-xs text-muted-foreground">
+            Sort by
+          </Label>
+          <select
+            id="sort"
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="mt-1 h-9 rounded-md border border-input bg-background px-3 text-sm"
+          >
+            {sortOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {(minPrice || maxPrice || sort !== "recent" || category !== "all") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setMinPrice("");
+              setMaxPrice("");
+              setSort("recent");
+              setCategory("all");
+            }}
+          >
+            Reset filters
+          </Button>
+        )}
+      </div>
+
+
       {productsQuery.isLoading && <p className="mt-10 text-sm text-muted-foreground">Loading listings…</p>}
 
       {!productsQuery.isLoading && filtered.length === 0 && (
