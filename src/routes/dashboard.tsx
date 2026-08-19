@@ -256,34 +256,78 @@ function DashboardPage() {
             </DialogHeader>
             <form onSubmit={addProduct} className="space-y-4">
               <div>
-                <Label htmlFor="name">Crop name</Label>
-                <Input id="name" name="name" required maxLength={80} className="mt-1.5" />
+                <Label htmlFor="category">1. Product category</Label>
+                <select
+                  id="category"
+                  value={categoryValue}
+                  onChange={(e) => pickCategory(e.target.value)}
+                  className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {CROP_CATALOG.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              <div>
+                <Label htmlFor="crop">2. Select your product</Label>
+                <Input
+                  id="crop-search"
+                  value={search}
+                  placeholder={`Search in ${activeCategory.label.toLowerCase()}…`}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="mt-1.5"
+                />
+                <select
+                  id="crop"
+                  size={6}
+                  value={selectedCrop}
+                  onChange={(e) => setSelectedCrop(e.target.value)}
+                  className="mt-2 w-full rounded-md border border-input bg-background p-1 text-sm"
+                >
+                  {cropOptions.map((item) => (
+                    <option key={item} value={item} className="rounded px-2 py-1">
+                      {item}
+                    </option>
+                  ))}
+                  <option value={OTHER}>Other (type my own)</option>
+                </select>
+                {selectedCrop === OTHER && (
+                  <Input
+                    value={customCrop}
+                    maxLength={80}
+                    placeholder="Enter your product name"
+                    onChange={(e) => setCustomCrop(e.target.value)}
+                    className="mt-2"
+                  />
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="category">Category</Label>
-                  <select
-                    id="category"
-                    name="category"
-                    defaultValue="vegetable"
-                    className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm capitalize"
-                  >
-                    {categories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                  <Label htmlFor="price">3. Fix your price (₹ per unit)</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="mt-1.5"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="unit">Unit</Label>
                   <select
                     id="unit"
-                    name="unit"
-                    defaultValue="kg"
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
                     className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                   >
-                    {units.map((u) => (
+                    {UNITS.map((u) => (
                       <option key={u} value={u}>
                         {u}
                       </option>
@@ -291,11 +335,13 @@ function DashboardPage() {
                   </select>
                 </div>
               </div>
+              {cropName && price && (
+                <p className="rounded-md bg-secondary px-3 py-2 text-sm text-secondary-foreground">
+                  {cropName} — ₹{Number(price || 0).toLocaleString("en-IN")} / {unit}
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="price">Your price (₹ per unit)</Label>
-                  <Input id="price" name="price" type="number" step="0.01" min="0.01" required className="mt-1.5" />
-                </div>
+                <div className="col-span-2">
                 <div>
                   <Label htmlFor="quantity">Quantity available</Label>
                   <Input id="quantity" name="quantity" type="number" step="0.1" min="0" required className="mt-1.5" />
