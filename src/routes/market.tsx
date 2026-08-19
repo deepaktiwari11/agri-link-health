@@ -120,15 +120,27 @@ function MarketPage() {
     },
   });
 
-  const filtered = (productsQuery.data ?? []).filter((p) => {
-    const term = search.trim().toLowerCase();
-    const matchesTerm =
-      !term ||
-      p.name.toLowerCase().includes(term) ||
-      (p.location ?? "").toLowerCase().includes(term) ||
-      (p.description ?? "").toLowerCase().includes(term);
-    return matchesTerm && (category === "all" || p.category === category);
-  });
+  const filtered = (productsQuery.data ?? [])
+    .filter((p) => {
+      const term = search.trim().toLowerCase();
+      const matchesTerm =
+        !term ||
+        p.name.toLowerCase().includes(term) ||
+        (p.location ?? "").toLowerCase().includes(term) ||
+        (p.description ?? "").toLowerCase().includes(term);
+      const min = minPrice === "" ? null : Number(minPrice);
+      const max = maxPrice === "" ? null : Number(maxPrice);
+      const price = Number(p.price);
+      const matchesPrice =
+        (min === null || Number.isNaN(min) || price >= min) &&
+        (max === null || Number.isNaN(max) || price <= max);
+      return matchesTerm && matchesPrice && (category === "all" || p.category === category);
+    })
+    .sort((a, b) => {
+      if (sort === "price_low") return Number(a.price) - Number(b.price);
+      if (sort === "price_high") return Number(b.price) - Number(a.price);
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   const submitInquiry = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
