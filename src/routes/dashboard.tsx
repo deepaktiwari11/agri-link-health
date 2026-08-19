@@ -191,6 +191,27 @@ function DashboardPage() {
     }
     toast.success("Crop listed at your price");
     setOpen(false);
+    setSelectedCrop("");
+    setCustomCrop("");
+    setSearch("");
+    setPrice("");
+    void qc.invalidateQueries({ queryKey: ["my-products"] });
+  };
+
+  const saveNewPrice = async () => {
+    if (!priceEdit) return;
+    const value = Number(priceEdit.price);
+    if (!Number.isFinite(value) || value < 0.01) {
+      toast.error("Enter a valid price");
+      return;
+    }
+    const { error } = await supabase.from("products").update({ price: value }).eq("id", priceEdit.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Price updated");
+    setPriceEdit(null);
     void qc.invalidateQueries({ queryKey: ["my-products"] });
   };
 
