@@ -71,8 +71,7 @@ const productSchema = z.object({
   description: z.string().trim().max(600).optional(),
 });
 
-const categories = ["vegetable", "fruit", "grain", "pulse", "spice", "dairy", "other"];
-const units = ["kg", "quintal", "ton", "dozen", "litre", "piece", "bag"];
+const OTHER = "__other__";
 
 function DashboardPage() {
   const { user, profile, loading } = useAuth();
@@ -80,6 +79,28 @@ function DashboardPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [categoryValue, setCategoryValue] = useState(CROP_CATALOG[0]!.value);
+  const [search, setSearch] = useState("");
+  const [selectedCrop, setSelectedCrop] = useState("");
+  const [customCrop, setCustomCrop] = useState("");
+  const [unit, setUnit] = useState(CROP_CATALOG[0]!.defaultUnit);
+  const [price, setPrice] = useState("");
+  const [priceEdit, setPriceEdit] = useState<{ id: string; name: string; price: string } | null>(null);
+
+  const activeCategory = CROP_CATALOG.find((c) => c.value === categoryValue) ?? CROP_CATALOG[0]!;
+  const cropOptions = activeCategory.items.filter((i) =>
+    i.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+  const cropName = selectedCrop === OTHER ? customCrop : selectedCrop;
+
+  const pickCategory = (value: string) => {
+    const cat = CROP_CATALOG.find((c) => c.value === value);
+    setCategoryValue(value);
+    setSearch("");
+    setSelectedCrop("");
+    setCustomCrop("");
+    if (cat) setUnit(cat.defaultUnit);
+  };
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
