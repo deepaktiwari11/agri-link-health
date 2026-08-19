@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { IndianRupee, Plus, Trash2 } from "lucide-react";
+import { IndianRupee, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { CROP_CATALOG, UNITS } from "@/lib/crop-catalog";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -71,8 +72,7 @@ const productSchema = z.object({
   description: z.string().trim().max(600).optional(),
 });
 
-const categories = ["vegetable", "fruit", "grain", "pulse", "spice", "dairy", "other"];
-const units = ["kg", "quintal", "ton", "dozen", "litre", "piece", "bag"];
+const OTHER = "__other__";
 
 function DashboardPage() {
   const { user, profile, loading } = useAuth();
@@ -80,6 +80,28 @@ function DashboardPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [categoryValue, setCategoryValue] = useState(CROP_CATALOG[0]!.value);
+  const [search, setSearch] = useState("");
+  const [selectedCrop, setSelectedCrop] = useState("");
+  const [customCrop, setCustomCrop] = useState("");
+  const [unit, setUnit] = useState(CROP_CATALOG[0]!.defaultUnit);
+  const [price, setPrice] = useState("");
+  const [priceEdit, setPriceEdit] = useState<{ id: string; name: string; price: string } | null>(null);
+
+  const activeCategory = CROP_CATALOG.find((c) => c.value === categoryValue) ?? CROP_CATALOG[0]!;
+  const cropOptions = activeCategory.items.filter((i) =>
+    i.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+  const cropName = selectedCrop === OTHER ? customCrop : selectedCrop;
+
+  const pickCategory = (value: string) => {
+    const cat = CROP_CATALOG.find((c) => c.value === value);
+    setCategoryValue(value);
+    setSearch("");
+    setSelectedCrop("");
+    setCustomCrop("");
+    if (cat) setUnit(cat.defaultUnit);
+  };
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
@@ -139,10 +161,10 @@ function DashboardPage() {
     if (!user) return;
     const fd = new FormData(e.currentTarget);
     const parsed = productSchema.safeParse({
-      name: fd.get("name"),
-      category: fd.get("category"),
-      price: fd.get("price"),
-      unit: fd.get("unit"),
+      name: cropName,
+      category: categoryValue,
+      price,
+      unit,
       quantity: fd.get("quantity"),
       location: fd.get("location") || undefined,
       description: fd.get("description") || undefined,
@@ -169,6 +191,27 @@ function DashboardPage() {
     }
     toast.success("Crop listed at your price");
     setOpen(false);
+    setSelectedCrop("");
+    setCustomCrop("");
+    setSearch("");
+    setPrice("");
+    void qc.invalidateQueries({ queryKey: ["my-products"] });
+  };
+
+  const saveNewPrice = async () => {
+    if (!priceEdit) return;
+    const value = Number(priceEdit.price);
+    if (!Number.isFinite(value) || value < 0.01) {
+      toast.error("Enter a valid price");
+      return;
+    }
+    const { error } = await supabase.from("products").update({ price: value }).eq("id", priceEdit.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Price updated");
+    setPriceEdit(null);
     void qc.invalidateQueries({ queryKey: ["my-products"] });
   };
 
@@ -235,34 +278,78 @@ function DashboardPage() {
             </DialogHeader>
             <form onSubmit={addProduct} className="space-y-4">
               <div>
-                <Label htmlFor="name">Crop name</Label>
-                <Input id="name" name="name" required maxLength={80} className="mt-1.5" />
+                <Label htmlFor="category">1. Product category</Label>
+                <select
+                  id="category"
+                  value={categoryValue}
+                  onChange={(e) => pickCategory(e.target.value)}
+                  className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {CROP_CATALOG.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              <div>
+                <Label htmlFor="crop">2. Select your product</Label>
+                <Input
+                  id="crop-search"
+                  value={search}
+                  placeholder={`Search in ${activeCategory.label.toLowerCase()}…`}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="mt-1.5"
+                />
+                <select
+                  id="crop"
+                  size={6}
+                  value={selectedCrop}
+                  onChange={(e) => setSelectedCrop(e.target.value)}
+                  className="mt-2 w-full rounded-md border border-input bg-background p-1 text-sm"
+                >
+                  {cropOptions.map((item) => (
+                    <option key={item} value={item} className="rounded px-2 py-1">
+                      {item}
+                    </option>
+                  ))}
+                  <option value={OTHER}>Other (type my own)</option>
+                </select>
+                {selectedCrop === OTHER && (
+                  <Input
+                    value={customCrop}
+                    maxLength={80}
+                    placeholder="Enter your product name"
+                    onChange={(e) => setCustomCrop(e.target.value)}
+                    className="mt-2"
+                  />
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="category">Category</Label>
-                  <select
-                    id="category"
-                    name="category"
-                    defaultValue="vegetable"
-                    className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm capitalize"
-                  >
-                    {categories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                  <Label htmlFor="price">3. Fix your price (₹ per unit)</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="mt-1.5"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="unit">Unit</Label>
                   <select
                     id="unit"
-                    name="unit"
-                    defaultValue="kg"
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
                     className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                   >
-                    {units.map((u) => (
+                    {UNITS.map((u) => (
                       <option key={u} value={u}>
                         {u}
                       </option>
@@ -270,15 +357,14 @@ function DashboardPage() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="price">Your price (₹ per unit)</Label>
-                  <Input id="price" name="price" type="number" step="0.01" min="0.01" required className="mt-1.5" />
-                </div>
-                <div>
-                  <Label htmlFor="quantity">Quantity available</Label>
-                  <Input id="quantity" name="quantity" type="number" step="0.1" min="0" required className="mt-1.5" />
-                </div>
+              {cropName && price && (
+                <p className="rounded-md bg-secondary px-3 py-2 text-sm text-secondary-foreground">
+                  {cropName} — ₹{Number(price || 0).toLocaleString("en-IN")} / {unit}
+                </p>
+              )}
+              <div>
+                <Label htmlFor="quantity">Quantity available</Label>
+                <Input id="quantity" name="quantity" type="number" step="0.1" min="0" required className="mt-1.5" />
               </div>
               <div>
                 <Label htmlFor="location">Village / Market</Label>
@@ -294,7 +380,7 @@ function DashboardPage() {
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" name="description" rows={3} maxLength={600} className="mt-1.5" />
               </div>
-              <Button type="submit" className="w-full" disabled={saving}>
+              <Button type="submit" className="w-full" disabled={saving || !cropName.trim()}>
                 {saving ? "Publishing…" : "Publish listing"}
               </Button>
             </form>
@@ -333,6 +419,12 @@ function DashboardPage() {
                   {Number(p.quantity).toLocaleString("en-IN")} {p.unit} in stock
                 </p>
                 <div className="mt-4 flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => setPriceEdit({ id: p.id, name: p.name, price: String(p.price) })}
+                  >
+                    <Pencil className="size-4" /> Set price
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => toggleAvailable(p)}>
                     {p.is_available ? "Pause" : "Resume"}
                   </Button>
@@ -343,6 +435,29 @@ function DashboardPage() {
               </div>
             ))}
           </div>
+
+          <Dialog open={!!priceEdit} onOpenChange={(v) => !v && setPriceEdit(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Set price for {priceEdit?.name}</DialogTitle>
+              </DialogHeader>
+              <div>
+                <Label htmlFor="new-price">Your price (₹ per unit)</Label>
+                <Input
+                  id="new-price"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={priceEdit?.price ?? ""}
+                  onChange={(e) =>
+                    setPriceEdit((s) => (s ? { ...s, price: e.target.value } : s))
+                  }
+                  className="mt-1.5"
+                />
+              </div>
+              <Button onClick={saveNewPrice}>Save price</Button>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="received" className="mt-6 space-y-4">
