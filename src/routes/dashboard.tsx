@@ -380,7 +380,7 @@ function DashboardPage() {
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" name="description" rows={3} maxLength={600} className="mt-1.5" />
               </div>
-              <Button type="submit" className="w-full" disabled={saving}>
+              <Button type="submit" className="w-full" disabled={saving || !cropName.trim()}>
                 {saving ? "Publishing…" : "Publish listing"}
               </Button>
             </form>
