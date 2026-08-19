@@ -161,10 +161,10 @@ function DashboardPage() {
     if (!user) return;
     const fd = new FormData(e.currentTarget);
     const parsed = productSchema.safeParse({
-      name: fd.get("name"),
-      category: fd.get("category"),
-      price: fd.get("price"),
-      unit: fd.get("unit"),
+      name: cropName,
+      category: categoryValue,
+      price,
+      unit,
       quantity: fd.get("quantity"),
       location: fd.get("location") || undefined,
       description: fd.get("description") || undefined,
