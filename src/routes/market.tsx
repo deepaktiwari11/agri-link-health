@@ -84,6 +84,9 @@ function MarketPage() {
   const { user, profile } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
+  const [sort, setSort] = useState("recent");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [active, setActive] = useState<ProductRow | null>(null);
   const [sending, setSending] = useState(false);
 
