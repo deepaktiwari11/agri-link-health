@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { CROP_CATALOG, UNITS } from "@/lib/crop-catalog";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
