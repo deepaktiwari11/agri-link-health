@@ -67,7 +67,17 @@ const inquirySchema = z.object({
   message: z.string().trim().max(500).optional(),
 });
 
-const categories = ["all", "vegetable", "fruit", "grain", "pulse", "spice", "dairy", "other"];
+const categories: { value: string; label: string }[] = [
+  { value: "all", label: "All crops" },
+  ...CROP_CATALOG.map((c) => ({ value: c.value, label: c.label })),
+  { value: "other", label: "Other" },
+];
+
+const sortOptions = [
+  { value: "recent", label: "Newest first" },
+  { value: "price_low", label: "Price: low to high" },
+  { value: "price_high", label: "Price: high to low" },
+];
 
 function MarketPage() {
   const { user, profile } = useAuth();
