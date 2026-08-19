@@ -419,6 +419,12 @@ function DashboardPage() {
                   {Number(p.quantity).toLocaleString("en-IN")} {p.unit} in stock
                 </p>
                 <div className="mt-4 flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => setPriceEdit({ id: p.id, name: p.name, price: String(p.price) })}
+                  >
+                    <Pencil className="size-4" /> Set price
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => toggleAvailable(p)}>
                     {p.is_available ? "Pause" : "Resume"}
                   </Button>
@@ -429,6 +435,29 @@ function DashboardPage() {
               </div>
             ))}
           </div>
+
+          <Dialog open={!!priceEdit} onOpenChange={(v) => !v && setPriceEdit(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Set price for {priceEdit?.name}</DialogTitle>
+              </DialogHeader>
+              <div>
+                <Label htmlFor="new-price">Your price (₹ per unit)</Label>
+                <Input
+                  id="new-price"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={priceEdit?.price ?? ""}
+                  onChange={(e) =>
+                    setPriceEdit((s) => (s ? { ...s, price: e.target.value } : s))
+                  }
+                  className="mt-1.5"
+                />
+              </div>
+              <Button onClick={saveNewPrice}>Save price</Button>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="received" className="mt-6 space-y-4">
