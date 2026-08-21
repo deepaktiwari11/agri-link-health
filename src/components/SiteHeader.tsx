@@ -3,17 +3,20 @@ import { Leaf, Menu } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import { ChatAssistant } from "@/components/ChatAssistant";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const links = [
-  { to: "/", label: "Home" },
-  { to: "/market", label: "Marketplace" },
-  { to: "/scan", label: "Leaf Scan" },
-  { to: "/dashboard", label: "Dashboard" },
+  { to: "/", key: "nav.home" },
+  { to: "/market", key: "nav.market" },
+  { to: "/scan", key: "nav.scan" },
+  { to: "/dashboard", key: "nav.dashboard" },
 ];
 
 export function SiteHeader() {
   const { user, profile, signOut } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -36,13 +39,14 @@ export function SiteHeader() {
               activeProps={{ className: "rounded-md px-3 py-2 text-sm font-medium text-primary bg-secondary" }}
               activeOptions={{ exact: l.to === "/" }}
             >
-              {l.label}
+              {t(l.key)}
             </Link>
           ))}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
           <ChatAssistant />
+          <LanguageSwitcher />
           {user ? (
             <>
               <span className="text-sm text-muted-foreground">
@@ -56,12 +60,12 @@ export function SiteHeader() {
                   void navigate({ to: "/" });
                 }}
               >
-                Sign out
+                {t("nav.signOut")}
               </Button>
             </>
           ) : (
             <Button size="sm" onClick={() => navigate({ to: "/auth" })}>
-              Sign in
+              {t("nav.signIn")}
             </Button>
           )}
         </div>
@@ -81,9 +85,13 @@ export function SiteHeader() {
                 onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-sm text-foreground hover:bg-secondary"
               >
-                {l.label}
+                {t(l.key)}
               </Link>
             ))}
+            <div className="mt-2 flex items-center gap-2 px-1">
+              <ChatAssistant />
+              <LanguageSwitcher />
+            </div>
             {user ? (
               <Button
                 variant="outline"
@@ -95,7 +103,7 @@ export function SiteHeader() {
                   void navigate({ to: "/" });
                 }}
               >
-                Sign out
+                {t("nav.signOut")}
               </Button>
             ) : (
               <Button
@@ -106,7 +114,7 @@ export function SiteHeader() {
                   void navigate({ to: "/auth" });
                 }}
               >
-                Sign in
+                {t("nav.signIn")}
               </Button>
             )}
           </div>
