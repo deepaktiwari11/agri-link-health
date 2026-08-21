@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import { CROP_CATALOG } from "@/lib/crop-catalog";
 
 export const Route = createFileRoute("/market")({
@@ -68,20 +69,17 @@ const inquirySchema = z.object({
   message: z.string().trim().max(500).optional(),
 });
 
-const categories: { value: string; label: string }[] = [
-  { value: "all", label: "All crops" },
-  ...CROP_CATALOG.map((c) => ({ value: c.value, label: c.label })),
-  { value: "other", label: "Other" },
-];
+const categories = ["all", ...CROP_CATALOG.map((c) => c.value), "other"];
 
 const sortOptions = [
-  { value: "recent", label: "Newest first" },
-  { value: "price_low", label: "Price: low to high" },
-  { value: "price_high", label: "Price: high to low" },
+  { value: "recent", key: "market.sort.recent" },
+  { value: "price_low", key: "market.sort.low" },
+  { value: "price_high", key: "market.sort.high" },
 ];
 
 function MarketPage() {
   const { user, profile } = useAuth();
+  const { t } = useI18n();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState("recent");
@@ -156,7 +154,7 @@ function MarketPage() {
       message: fd.get("message") || undefined,
     });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Please check the form");
+      toast.error(parsed.error.issues[0]?.message ?? t("market.formError"));
       return;
     }
     setSending(true);
@@ -174,16 +172,14 @@ function MarketPage() {
       toast.error(error.message);
       return;
     }
-    toast.success("Request sent to the farmer");
+    toast.success(t("market.sent"));
     setActive(null);
   };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
-      <h1 className="text-3xl font-semibold tracking-tight">Crop marketplace</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Every price here is fixed by the farmer who grew the crop. Contact them directly to buy.
-      </p>
+      <h1 className="text-3xl font-semibold tracking-tight">{t("market.title")}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{t("market.subtitle")}</p>
 
       <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center">
         <div className="relative flex-1">
@@ -191,7 +187,7 @@ function MarketPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search crop, village or district"
+            placeholder={t("market.search")}
             className="pl-9"
             maxLength={80}
           />
@@ -199,15 +195,15 @@ function MarketPage() {
         <div className="flex flex-wrap gap-2">
           {categories.map((c) => (
             <button
-              key={c.value}
-              onClick={() => setCategory(c.value)}
+              key={c}
+              onClick={() => setCategory(c)}
               className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                category === c.value
+                category === c
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border text-muted-foreground hover:bg-secondary"
               }`}
             >
-              {c.label}
+              {t(`cat.${c}`)}
             </button>
           ))}
         </div>
@@ -216,7 +212,7 @@ function MarketPage() {
       <div className="mt-3 flex flex-wrap items-end gap-3">
         <div>
           <Label htmlFor="min_price" className="text-xs text-muted-foreground">
-            Min price (₹)
+            {t("market.minPrice")}
           </Label>
           <Input
             id="min_price"
@@ -231,7 +227,7 @@ function MarketPage() {
         </div>
         <div>
           <Label htmlFor="max_price" className="text-xs text-muted-foreground">
-            Max price (₹)
+            {t("market.maxPrice")}
           </Label>
           <Input
             id="max_price"
@@ -240,13 +236,13 @@ function MarketPage() {
             inputMode="numeric"
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
-            placeholder="Any"
+            placeholder={t("market.any")}
             className="mt-1 w-28"
           />
         </div>
         <div>
           <Label htmlFor="sort" className="text-xs text-muted-foreground">
-            Sort by
+            {t("market.sort")}
           </Label>
           <select
             id="sort"
@@ -256,7 +252,7 @@ function MarketPage() {
           >
             {sortOptions.map((o) => (
               <option key={o.value} value={o.value}>
-                {o.label}
+                {t(o.key)}
               </option>
             ))}
           </select>
@@ -272,23 +268,22 @@ function MarketPage() {
               setCategory("all");
             }}
           >
-            Reset filters
+            {t("market.reset")}
           </Button>
         )}
       </div>
 
-
-      {productsQuery.isLoading && <p className="mt-10 text-sm text-muted-foreground">Loading listings…</p>}
+      {productsQuery.isLoading && (
+        <p className="mt-10 text-sm text-muted-foreground">{t("market.loading")}</p>
+      )}
 
       {!productsQuery.isLoading && filtered.length === 0 && (
         <div className="card-surface mt-10 p-10 text-center">
           <Package className="mx-auto size-8 text-muted-foreground" />
-          <p className="mt-3 font-medium">No crops listed yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Farmers can add their produce from the dashboard.
-          </p>
+          <p className="mt-3 font-medium">{t("market.empty.title")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("market.empty.text")}</p>
           <Button asChild className="mt-5">
-            <Link to="/dashboard">Go to dashboard</Link>
+            <Link to="/dashboard">{t("market.empty.cta")}</Link>
           </Button>
         </div>
       )}
@@ -300,9 +295,7 @@ function MarketPage() {
             <article key={p.id} className="card-surface flex flex-col p-5">
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-lg font-semibold">{p.name}</h2>
-                <Badge variant="secondary" className="capitalize">
-                  {p.category}
-                </Badge>
+                <Badge variant="secondary">{t(`cat.${p.category}`)}</Badge>
               </div>
               <p className="mt-2 flex items-baseline gap-1 text-2xl font-bold text-primary">
                 <IndianRupee className="size-5" />
@@ -310,12 +303,12 @@ function MarketPage() {
                 <span className="text-sm font-normal text-muted-foreground">/ {p.unit}</span>
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {Number(p.quantity).toLocaleString("en-IN")} {p.unit} available
+                {Number(p.quantity).toLocaleString("en-IN")} {p.unit} {t("market.available")}
               </p>
               {p.description && <p className="mt-3 line-clamp-3 text-sm">{p.description}</p>}
               <div className="mt-4 space-y-1 text-xs text-muted-foreground">
                 <p className="flex items-center gap-1.5">
-                  <User className="size-3.5" /> {farmer?.full_name || "Farmer"}
+                  <User className="size-3.5" /> {farmer?.full_name || t("market.farmer")}
                 </p>
                 {(p.location || farmer?.location) && (
                   <p className="flex items-center gap-1.5">
@@ -329,7 +322,7 @@ function MarketPage() {
                 )}
               </div>
               <Button className="mt-5 w-full" onClick={() => setActive(p)}>
-                Contact farmer to buy
+                {t("market.contact")}
               </Button>
             </article>
           );
@@ -339,36 +332,40 @@ function MarketPage() {
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Buy {active?.name}</DialogTitle>
+            <DialogTitle>
+              {t("market.dialog.title")} {active?.name}
+            </DialogTitle>
             <DialogDescription>
-              Farmer's fixed rate: ₹{active ? Number(active.price).toLocaleString("en-IN") : ""} per{" "}
-              {active?.unit}. Send your request and the farmer will contact you.
+              {t("market.dialog.rate")}: ₹{active ? Number(active.price).toLocaleString("en-IN") : ""}{" "}
+              {t("market.dialog.per")} {active?.unit}. {t("market.dialog.note")}
             </DialogDescription>
           </DialogHeader>
 
           {!user ? (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Please sign in as a merchant to send a purchase request.
-              </p>
+              <p className="text-sm text-muted-foreground">{t("market.signInNote")}</p>
               <Button asChild className="w-full">
-                <Link to="/auth">Sign in / Register</Link>
+                <Link to="/auth">{t("market.signInCta")}</Link>
               </Button>
             </div>
           ) : (
             <form onSubmit={submitInquiry} className="space-y-4">
               {profile?.role === "farmer" && (
                 <p className="rounded-md bg-secondary p-3 text-xs text-secondary-foreground">
-                  Your account is registered as a farmer — you can still send a request.
+                  {t("market.farmerNote")}
                 </p>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="quantity">Quantity ({active?.unit})</Label>
+                  <Label htmlFor="quantity">
+                    {t("market.quantity")} ({active?.unit})
+                  </Label>
                   <Input id="quantity" name="quantity" type="number" step="0.1" min="0.1" required className="mt-1.5" />
                 </div>
                 <div>
-                  <Label htmlFor="offered_price">Your offer / {active?.unit}</Label>
+                  <Label htmlFor="offered_price">
+                    {t("market.offer")} / {active?.unit}
+                  </Label>
                   <Input
                     id="offered_price"
                     name="offered_price"
@@ -381,7 +378,7 @@ function MarketPage() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="contact_phone">Your phone number</Label>
+                <Label htmlFor="contact_phone">{t("market.phone")}</Label>
                 <Input
                   id="contact_phone"
                   name="contact_phone"
@@ -392,11 +389,11 @@ function MarketPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="message">Message (optional)</Label>
+                <Label htmlFor="message">{t("market.message")}</Label>
                 <Textarea id="message" name="message" maxLength={500} rows={3} className="mt-1.5" />
               </div>
               <Button type="submit" className="w-full" disabled={sending}>
-                {sending ? "Sending…" : "Send purchase request"}
+                {sending ? t("market.sending") : t("market.send")}
               </Button>
             </form>
           )}
