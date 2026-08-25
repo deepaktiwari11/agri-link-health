@@ -20,6 +20,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { CROP_CATALOG, UNITS } from "@/lib/crop-catalog";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -76,6 +77,7 @@ const OTHER = "__other__";
 
 function DashboardPage() {
   const { user, profile, loading } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -170,7 +172,7 @@ function DashboardPage() {
       description: fd.get("description") || undefined,
     });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Please check the form");
+      toast.error(parsed.error.issues[0]?.message ?? t("common.formError"));
       return;
     }
     setSaving(true);
@@ -189,7 +191,7 @@ function DashboardPage() {
       toast.error(error.message);
       return;
     }
-    toast.success("Crop listed at your price");
+    toast.success(t("dash.listed"));
     setOpen(false);
     setSelectedCrop("");
     setCustomCrop("");
@@ -202,7 +204,7 @@ function DashboardPage() {
     if (!priceEdit) return;
     const value = Number(priceEdit.price);
     if (!Number.isFinite(value) || value < 0.01) {
-      toast.error("Enter a valid price");
+      toast.error(t("dash.invalidPrice"));
       return;
     }
     const { error } = await supabase.from("products").update({ price: value }).eq("id", priceEdit.id);
@@ -210,7 +212,7 @@ function DashboardPage() {
       toast.error(error.message);
       return;
     }
-    toast.success("Price updated");
+    toast.success(t("dash.priceUpdated"));
     setPriceEdit(null);
     void qc.invalidateQueries({ queryKey: ["my-products"] });
   };
@@ -233,7 +235,7 @@ function DashboardPage() {
       toast.error(error.message);
       return;
     }
-    toast.success("Listing removed");
+    toast.success(t("dash.removed"));
     void qc.invalidateQueries({ queryKey: ["my-products"] });
   };
 
@@ -243,12 +245,14 @@ function DashboardPage() {
       toast.error(error.message);
       return;
     }
-    toast.success(`Request ${status}`);
+    toast.success(`${t("dash.request")} ${status}`);
     void qc.invalidateQueries({ queryKey: ["my-inquiries"] });
   };
 
   if (loading || !user) {
-    return <div className="mx-auto max-w-6xl px-4 py-16 text-sm text-muted-foreground">Loading…</div>;
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-16 text-sm text-muted-foreground">{t("dash.loading")}</div>
+    );
   }
 
   const inquiries = inquiriesQuery.data ?? [];
@@ -260,10 +264,11 @@ function DashboardPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">
-            Hello{profile?.full_name ? `, ${profile.full_name}` : ""}
+            {t("dash.hello")}
+            {profile?.full_name ? `, ${profile.full_name}` : ""}
           </h1>
-          <p className="mt-1 text-sm capitalize text-muted-foreground">
-            {profile?.role ?? "member"} account
+          <p className="mt-1 text-sm text-muted-foreground">
+            {profile?.role === "merchant" ? t("dash.merchant") : t("dash.farmer")} {t("dash.account")}
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
