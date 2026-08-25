@@ -20,6 +20,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { CROP_CATALOG, UNITS } from "@/lib/crop-catalog";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -76,6 +77,7 @@ const OTHER = "__other__";
 
 function DashboardPage() {
   const { user, profile, loading } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -170,7 +172,7 @@ function DashboardPage() {
       description: fd.get("description") || undefined,
     });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Please check the form");
+      toast.error(parsed.error.issues[0]?.message ?? t("common.formError"));
       return;
     }
     setSaving(true);
@@ -189,7 +191,7 @@ function DashboardPage() {
       toast.error(error.message);
       return;
     }
-    toast.success("Crop listed at your price");
+    toast.success(t("dash.listed"));
     setOpen(false);
     setSelectedCrop("");
     setCustomCrop("");
@@ -202,7 +204,7 @@ function DashboardPage() {
     if (!priceEdit) return;
     const value = Number(priceEdit.price);
     if (!Number.isFinite(value) || value < 0.01) {
-      toast.error("Enter a valid price");
+      toast.error(t("dash.invalidPrice"));
       return;
     }
     const { error } = await supabase.from("products").update({ price: value }).eq("id", priceEdit.id);
@@ -210,7 +212,7 @@ function DashboardPage() {
       toast.error(error.message);
       return;
     }
-    toast.success("Price updated");
+    toast.success(t("dash.priceUpdated"));
     setPriceEdit(null);
     void qc.invalidateQueries({ queryKey: ["my-products"] });
   };
@@ -233,7 +235,7 @@ function DashboardPage() {
       toast.error(error.message);
       return;
     }
-    toast.success("Listing removed");
+    toast.success(t("dash.removed"));
     void qc.invalidateQueries({ queryKey: ["my-products"] });
   };
 
@@ -243,12 +245,14 @@ function DashboardPage() {
       toast.error(error.message);
       return;
     }
-    toast.success(`Request ${status}`);
+    toast.success(`${t("dash.request")} ${status}`);
     void qc.invalidateQueries({ queryKey: ["my-inquiries"] });
   };
 
   if (loading || !user) {
-    return <div className="mx-auto max-w-6xl px-4 py-16 text-sm text-muted-foreground">Loading…</div>;
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-16 text-sm text-muted-foreground">{t("dash.loading")}</div>
+    );
   }
 
   const inquiries = inquiriesQuery.data ?? [];
@@ -260,25 +264,26 @@ function DashboardPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">
-            Hello{profile?.full_name ? `, ${profile.full_name}` : ""}
+            {t("dash.hello")}
+            {profile?.full_name ? `, ${profile.full_name}` : ""}
           </h1>
-          <p className="mt-1 text-sm capitalize text-muted-foreground">
-            {profile?.role ?? "member"} account
+          <p className="mt-1 text-sm text-muted-foreground">
+            {profile?.role === "merchant" ? t("dash.merchant") : t("dash.farmer")} {t("dash.account")}
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="size-4" /> List a crop
+              <Plus className="size-4" /> {t("dash.list")}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>List your crop and fix the rate</DialogTitle>
+              <DialogTitle>{t("dash.listTitle")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={addProduct} className="space-y-4">
               <div>
-                <Label htmlFor="category">1. Product category</Label>
+                <Label htmlFor="category">{t("dash.step1")}</Label>
                 <select
                   id="category"
                   value={categoryValue}
@@ -287,18 +292,18 @@ function DashboardPage() {
                 >
                   {CROP_CATALOG.map((c) => (
                     <option key={c.value} value={c.value}>
-                      {c.label}
+                      {t(`cat.${c.value}`)}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <Label htmlFor="crop">2. Select your product</Label>
+                <Label htmlFor="crop">{t("dash.step2")}</Label>
                 <Input
                   id="crop-search"
                   value={search}
-                  placeholder={`Search in ${activeCategory.label.toLowerCase()}…`}
+                  placeholder={`${t("dash.searchIn")} ${t(`cat.${activeCategory.value}`)}…`}
                   onChange={(e) => setSearch(e.target.value)}
                   className="mt-1.5"
                 />
@@ -314,13 +319,13 @@ function DashboardPage() {
                       {item}
                     </option>
                   ))}
-                  <option value={OTHER}>Other (type my own)</option>
+                  <option value={OTHER}>{t("dash.other")}</option>
                 </select>
                 {selectedCrop === OTHER && (
                   <Input
                     value={customCrop}
                     maxLength={80}
-                    placeholder="Enter your product name"
+                    placeholder={t("dash.ownName")}
                     onChange={(e) => setCustomCrop(e.target.value)}
                     className="mt-2"
                   />
@@ -329,7 +334,7 @@ function DashboardPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="price">3. Fix your price (₹ per unit)</Label>
+                  <Label htmlFor="price">{t("dash.step3")}</Label>
                   <Input
                     id="price"
                     type="number"
@@ -342,7 +347,7 @@ function DashboardPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="unit">Unit</Label>
+                  <Label htmlFor="unit">{t("dash.unit")}</Label>
                   <select
                     id="unit"
                     value={unit}
@@ -363,11 +368,11 @@ function DashboardPage() {
                 </p>
               )}
               <div>
-                <Label htmlFor="quantity">Quantity available</Label>
+                <Label htmlFor="quantity">{t("dash.quantity")}</Label>
                 <Input id="quantity" name="quantity" type="number" step="0.1" min="0" required className="mt-1.5" />
               </div>
               <div>
-                <Label htmlFor="location">Village / Market</Label>
+                <Label htmlFor="location">{t("dash.location")}</Label>
                 <Input
                   id="location"
                   name="location"
@@ -377,11 +382,11 @@ function DashboardPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t("dash.description")}</Label>
                 <Textarea id="description" name="description" rows={3} maxLength={600} className="mt-1.5" />
               </div>
               <Button type="submit" className="w-full" disabled={saving || !cropName.trim()}>
-                {saving ? "Publishing…" : "Publish listing"}
+                {saving ? t("dash.publishing") : t("dash.publish")}
               </Button>
             </form>
           </DialogContent>
@@ -390,15 +395,21 @@ function DashboardPage() {
 
       <Tabs defaultValue="listings" className="mt-8">
         <TabsList>
-          <TabsTrigger value="listings">My listings ({productsQuery.data?.length ?? 0})</TabsTrigger>
-          <TabsTrigger value="received">Requests received ({received.length})</TabsTrigger>
-          <TabsTrigger value="sent">Requests sent ({sent.length})</TabsTrigger>
+          <TabsTrigger value="listings">
+            {t("dash.tab.listings")} ({productsQuery.data?.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="received">
+            {t("dash.tab.received")} ({received.length})
+          </TabsTrigger>
+          <TabsTrigger value="sent">
+            {t("dash.tab.sent")} ({sent.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="listings" className="mt-6">
           {productsQuery.data?.length === 0 && (
             <div className="card-surface p-10 text-center text-sm text-muted-foreground">
-              You haven't listed any crop yet. Use “List a crop” to set your own rate.
+              {t("dash.noListings")}
             </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -407,7 +418,7 @@ function DashboardPage() {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold">{p.name}</h3>
                   <Badge variant={p.is_available ? "default" : "secondary"}>
-                    {p.is_available ? "Live" : "Paused"}
+                    {p.is_available ? t("dash.live") : t("dash.paused")}
                   </Badge>
                 </div>
                 <p className="mt-2 flex items-baseline text-xl font-bold text-primary">
@@ -416,17 +427,17 @@ function DashboardPage() {
                   <span className="ml-1 text-sm font-normal text-muted-foreground">/ {p.unit}</span>
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {Number(p.quantity).toLocaleString("en-IN")} {p.unit} in stock
+                  {Number(p.quantity).toLocaleString("en-IN")} {p.unit} {t("dash.inStock")}
                 </p>
                 <div className="mt-4 flex gap-2">
                   <Button
                     size="sm"
                     onClick={() => setPriceEdit({ id: p.id, name: p.name, price: String(p.price) })}
                   >
-                    <Pencil className="size-4" /> Set price
+                    <Pencil className="size-4" /> {t("dash.setPrice")}
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => toggleAvailable(p)}>
-                    {p.is_available ? "Pause" : "Resume"}
+                    {p.is_available ? t("dash.pause") : t("dash.resume")}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => removeProduct(p.id)}>
                     <Trash2 className="size-4" />
@@ -439,10 +450,12 @@ function DashboardPage() {
           <Dialog open={!!priceEdit} onOpenChange={(v) => !v && setPriceEdit(null)}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Set price for {priceEdit?.name}</DialogTitle>
+                <DialogTitle>
+                  {t("dash.setPriceFor")} {priceEdit?.name}
+                </DialogTitle>
               </DialogHeader>
               <div>
-                <Label htmlFor="new-price">Your price (₹ per unit)</Label>
+                <Label htmlFor="new-price">{t("dash.yourPrice")}</Label>
                 <Input
                   id="new-price"
                   type="number"
@@ -455,7 +468,7 @@ function DashboardPage() {
                   className="mt-1.5"
                 />
               </div>
-              <Button onClick={saveNewPrice}>Save price</Button>
+              <Button onClick={saveNewPrice}>{t("dash.savePrice")}</Button>
             </DialogContent>
           </Dialog>
         </TabsContent>
@@ -463,14 +476,14 @@ function DashboardPage() {
         <TabsContent value="received" className="mt-6 space-y-4">
           {received.length === 0 && (
             <div className="card-surface p-10 text-center text-sm text-muted-foreground">
-              No merchant has contacted you yet.
+              {t("dash.noReceived")}
             </div>
           )}
           {received.map((i) => (
             <div key={i.id} className="card-surface p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-semibold">
-                  {namesQuery.data?.products?.[i.product_id]?.name ?? "Crop"} ·{" "}
+                  {namesQuery.data?.products?.[i.product_id]?.name ?? t("dash.crop")} ·{" "}
                   {Number(i.quantity).toLocaleString("en-IN")}{" "}
                   {namesQuery.data?.products?.[i.product_id]?.unit ?? ""}
                 </h3>
@@ -479,17 +492,18 @@ function DashboardPage() {
                 </Badge>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                From {namesQuery.data?.people?.[i.merchant_id]?.full_name ?? "Merchant"} · offered ₹
-                {Number(i.offered_price ?? 0).toLocaleString("en-IN")} · phone {i.contact_phone ?? "—"}
+                {t("dash.from")} {namesQuery.data?.people?.[i.merchant_id]?.full_name ?? t("dash.merchant")} ·{" "}
+                {t("dash.offered")} ₹{Number(i.offered_price ?? 0).toLocaleString("en-IN")} · {t("dash.phone")}{" "}
+                {i.contact_phone ?? "—"}
               </p>
               {i.message && <p className="mt-2 text-sm">{i.message}</p>}
               {i.status === "pending" && (
                 <div className="mt-4 flex gap-2">
                   <Button size="sm" onClick={() => setStatus(i.id, "accepted")}>
-                    Accept
+                    {t("dash.accept")}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setStatus(i.id, "declined")}>
-                    Decline
+                    {t("dash.decline")}
                   </Button>
                 </div>
               )}
@@ -500,9 +514,9 @@ function DashboardPage() {
         <TabsContent value="sent" className="mt-6 space-y-4">
           {sent.length === 0 && (
             <div className="card-surface p-10 text-center text-sm text-muted-foreground">
-              You haven't contacted any farmer yet.{" "}
+              {t("dash.noSent")}{" "}
               <Link to="/market" className="text-primary underline">
-                Browse the marketplace
+                {t("dash.browse")}
               </Link>
               .
             </div>
@@ -511,7 +525,7 @@ function DashboardPage() {
             <div key={i.id} className="card-surface p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-semibold">
-                  {namesQuery.data?.products?.[i.product_id]?.name ?? "Crop"} ·{" "}
+                  {namesQuery.data?.products?.[i.product_id]?.name ?? t("dash.crop")} ·{" "}
                   {Number(i.quantity).toLocaleString("en-IN")}{" "}
                   {namesQuery.data?.products?.[i.product_id]?.unit ?? ""}
                 </h3>
@@ -520,9 +534,9 @@ function DashboardPage() {
                 </Badge>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                To {namesQuery.data?.people?.[i.farmer_id]?.full_name ?? "Farmer"}
+                {t("dash.to")} {namesQuery.data?.people?.[i.farmer_id]?.full_name ?? t("dash.farmer")}
                 {i.status === "accepted" && namesQuery.data?.people?.[i.farmer_id]?.phone
-                  ? ` · call ${namesQuery.data.people[i.farmer_id]?.phone}`
+                  ? ` · ${t("dash.call")} ${namesQuery.data.people[i.farmer_id]?.phone}`
                   : ""}
               </p>
             </div>
